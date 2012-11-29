@@ -2,17 +2,21 @@ package no.kaedeno.enonic.detector.enonicDetector;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Enumeration;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.enonic.cms.api.plugin.PluginEnvironment;
 import com.enonic.cms.api.plugin.ext.http.HttpInterceptor;
 
 import ua_parser.Parser;
 import ua_parser.Client;
 
 public class Detector extends HttpInterceptor {
+
+	private PluginEnvironment environment = null;
 
 	@Override
 	public boolean preHandle(HttpServletRequest httpServletRequest,
@@ -34,6 +38,7 @@ public class Detector extends HttpInterceptor {
 		Parser uaParser = new Parser();
 		Client c = uaParser.parse(userAgent);
 
+		// DEBUG PRINT
 		log.info("UA Family: " + c.userAgent.family);
 		log.info("UA Major version: " + c.userAgent.major);
 		log.info("UA Minor version: " + c.userAgent.minor);
@@ -45,6 +50,15 @@ public class Detector extends HttpInterceptor {
 		log.info("Device Family: " + c.device.family);
 		log.info("Device is mobile: " + new Boolean(c.device.isMobile).toString());
 		log.info("Device is a spider: " + new Boolean(c.device.isSpider).toString());
+
+		if (environment != null) {
+			Enumeration<?> attNames = environment.getCurrentSession().getAttributeNames();
+			while (attNames.hasMoreElements()) {
+				log.info("SESSION ATTRIBUTE NAME: " + attNames.nextElement());
+			}
+		} else {
+			log.info("SESSION NOT FOUND");
+		}
 
 		return true;
 	}
@@ -70,5 +84,9 @@ public class Detector extends HttpInterceptor {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	public void setEnvironment(PluginEnvironment pluginEnvironment) {
+		this.environment = pluginEnvironment;
 	}
 }
