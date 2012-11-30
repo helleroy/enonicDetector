@@ -49,6 +49,7 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Local repo dependency: UA Parser -->
 		<dependency>
 			<groupId>no.kaedeno.enonic.detector</groupId>
 			<artifactId>ua-parser</artifactId>
@@ -66,6 +67,12 @@
 			<artifactId>spring-beans</artifactId>
 			<version>3.0.5.RELEASE</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongo-java-driver</artifactId>
+			<version>2.10.0</version>
 		</dependency>
 	</dependencies>
 

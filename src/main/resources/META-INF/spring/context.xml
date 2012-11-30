@@ -8,6 +8,8 @@
 		<property name="urlPattern" value=".*" />
 		<property name="displayName" value="Detector interceptor" />
 		<property name="environment" ref="plugin.service.pluginEnvironment" />
+		<property name="context" ref="plugin.context" />
+		<property name="pluginConfig" ref="plugin.config" />
 	</bean>
 
 </beans>
