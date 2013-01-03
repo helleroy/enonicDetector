@@ -1,4 +1,4 @@
-package no.kaedeno.enonic.detector.enonicDetector;
+package no.kaedeno.enonic.detector;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -33,7 +33,7 @@ public class Detector extends HttpInterceptor {
 	@Override
 	public boolean preHandle(HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse) throws Exception {
-
+		
 		// PLUGIN FLOW:
 		// 1. Look up UA string in database
 		// 2. If found:
@@ -68,6 +68,9 @@ public class Detector extends HttpInterceptor {
 		// 3. If not found:
 		else {
 			// TODO: 3.1 Send Modernizr tests to client
+			
+			String modernizr = (String) pluginConfig.get("modernizr");	
+			log.info(modernizr);
 
 			// 3.2 Check UA string for useful information
 			Parser uaParser = new Parser();

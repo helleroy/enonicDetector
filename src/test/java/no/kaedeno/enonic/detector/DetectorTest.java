@@ -1,4 +1,4 @@
-package no.kaedeno.enonic.detector.enonicDetector;
+package no.kaedeno.enonic.detector;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
