@@ -1,9 +1,11 @@
 package no.kaedeno.enonic.detector;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Scanner;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,7 +35,7 @@ public class Detector extends HttpInterceptor {
 	@Override
 	public boolean preHandle(HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse) throws Exception {
-		
+
 		// PLUGIN FLOW:
 		// 1. Look up UA string in database
 		// 2. If found:
@@ -60,17 +62,20 @@ public class Detector extends HttpInterceptor {
 
 		// 2. If found:
 		if (result != null) {
+			
+			// TEMPORARY
+			this.sendClientTests(httpServletResponse);
+
 			log.info("=== DATABASE ===");
 			log.info("Result from DB: " + result);
 
 			// TODO: 2.1 Set UA features in context XML
+
+			return false;
 		}
 		// 3. If not found:
 		else {
 			// TODO: 3.1 Send Modernizr tests to client
-			
-			String modernizr = (String) pluginConfig.get("modernizr");	
-			log.info(modernizr);
 
 			// 3.2 Check UA string for useful information
 			Parser uaParser = new Parser();
@@ -96,9 +101,9 @@ public class Detector extends HttpInterceptor {
 			log.info("Inserted into DB: " + userAgentData);
 
 			// TODO: 3.4. Set UA features in context XML
-		}
 
-		return true;
+			return false;
+		}
 	}
 
 	@Override
@@ -108,19 +113,20 @@ public class Detector extends HttpInterceptor {
 	}
 
 	private String generateMarkup() {
-		// TODO: Generate markup
-		String modernizr = (String) pluginConfig.get("modernizr");
-		return "<!DOCTYPE html>" + 
-				"<html>" + 
-				"<head>" + 
-				"<meta charset='utf-8'>" + 
-				"<title>Modernizr Test</title>" + 
-				"<script src='" + modernizr + "'></script>" + 
-				"</head>" + 
-				"</html>";
+		String modernizrFile = (String) pluginConfig.get("modernizr");
+		String modernizrScript = null;
+
+		InputStream is = getClass().getClassLoader().getResourceAsStream("/" + modernizrFile);
+		Scanner sc = new Scanner(is);
+		modernizrScript = sc.useDelimiter("\\Z").next();
+		sc.close();
+
+		return "<!DOCTYPE html>\n<html class=\"no-js\">\n<head>" + "\n<meta charset=\"utf-8\">"
+				+ "\n<title>Modernizr Test</title>" + "\n<script type=\"text/javascript\">\n"
+				+ modernizrScript + "\n</script>"
+				+ "\n</head>\n<body>Modernizr has run som tests.</body>\n</html>";
 	}
 
-	@SuppressWarnings("unused")
 	private boolean sendClientTests(HttpServletResponse httpServletResponse) {
 		String markup = this.generateMarkup();
 		try {
