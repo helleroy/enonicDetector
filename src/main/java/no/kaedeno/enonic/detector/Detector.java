@@ -29,6 +29,8 @@ public class Detector extends HttpInterceptor {
 	private PluginConfig pluginConfig = null;
 
 	private MongoClient mongoClient = null;
+	
+	private String cookieID = "Modernizr";
 
 	private Logger log = Logger.getLogger("Detector");
 
@@ -121,21 +123,59 @@ public class Detector extends HttpInterceptor {
 		modernizrScript = sc.useDelimiter("\\Z").next();
 		sc.close();
 
-		return "<!DOCTYPE html>\n<html class=\"no-js\">\n<head>" + "\n<meta charset=\"utf-8\">"
-				+ "\n<title>Modernizr Test</title>" + "\n<script type=\"text/javascript\">\n"
-				+ modernizrScript + "\n</script>"
-				+ "\n</head>\n<body>Modernizr has run som tests.</body>\n</html>";
+		return "<!DOCTYPE html><html class='no-js'><head>" + "<meta charset='utf-8'>"
+				+ "<title>Modernizr Test</title>" + "<script type='text/javascript'>\n"
+				+ modernizrScript + createCookieJS(true, "") + "console.log(Modernizr);" + "</script>"
+				+ "</head><body>Modernizr has run som tests and stored the result in a cookie.</body></html>";
 	}
-
-	private boolean sendClientTests(HttpServletResponse httpServletResponse) {
+	
+	private String createCookieJS(boolean reload, String cookieExtra) {
+		String output = "var m=Modernizr;var c='';var k='';var f;"+
+		  "for(f in m){"+
+		    "var j='';"+
+		    "if(f[0]=='_'){continue;}"+
+		    "var t=typeof m[f];"+
+		    "if(t=='function'){continue;}"+
+		    "c+=(c?'|':'"+ this.cookieID + cookieExtra + "=')+f+':';"+
+		    "var kt=(f.slice(0,3)=='pr-')?true:false;"+
+		    "if(kt){k+=(k?'|':'" + this.cookieID + "-pr=')+f+':';}"+
+		    "if(t=='object'){"+
+			  "var s;"+
+		      "for(s in m[f]){"+
+				"if (typeof m[f][s]=='boolean'){j+='/'+s+':'+(m[f][s]?1:0);}"+
+		        "else{j+='/'+s+':'+m[f][s];}"+
+		      "}"+
+			  "c+=j;"+
+		      "k+=kt?j:'';"+
+		    "}else{"+
+		      "j=m[f]?'1':'0';"+
+		      "c+=j;"+
+		      "k+=kt?j:'';"+
+		    "}"+
+		  "}"+
+		  "c+=';path=/';"+
+		  "if(k){k+=';path=/';}"+
+		  "try{"+
+		    "if(getCookie()!='testData') {"+
+				"window.location=cookieRedirect;"+
+		    "}else{"+
+				"document.cookie=c;"+
+				"if(k){document.cookie=k;}";
+		if (reload) {
+			output += "document.location.reload();";
+		}
+		output += "}";
+		output += "}catch(e){}";
+		return output;
+	}
+	
+	private void sendClientTests(HttpServletResponse httpServletResponse) {
 		String markup = this.generateMarkup();
 		try {
 			PrintWriter w = httpServletResponse.getWriter();
 			w.write(markup);
-			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
-			return false;
 		}
 	}
 
