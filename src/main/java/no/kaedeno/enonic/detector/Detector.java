@@ -3,11 +3,11 @@ package no.kaedeno.enonic.detector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -64,20 +64,30 @@ public class Detector extends HttpInterceptor {
 
 		// 2. If found:
 		if (result != null) {
-			
-			// TEMPORARY
-			this.sendClientTests(httpServletResponse);
 
 			log.info("=== DATABASE ===");
 			log.info("Result from DB: " + result);
 
 			// TODO: 2.1 Set UA features in context XML
 
-			return false;
+			return true;
 		}
 		// 3. If not found:
 		else {
-			// TODO: 3.1 Send Modernizr tests to client
+			// 3.1 Send Modernizr tests to client
+			Cookie cookie = getCookie(httpServletRequest.getCookies(), this.cookieID);
+			BasicDBObject parsedCookie = null;
+			if (cookie == null) {
+				sendClientTests(httpServletResponse);
+				return false;
+			} else {
+				log.info("Received Cookie: " + cookie.getValue());
+				parsedCookie = parseCookie(cookie.getValue());
+				log.info("Parsed Cookie: " + parsedCookie.toString());
+				cookie.setMaxAge(0);
+				cookie.setValue("");
+				httpServletResponse.addCookie(cookie);
+			}
 
 			// 3.2 Check UA string for useful information
 			Parser uaParser = new Parser();
@@ -85,7 +95,7 @@ public class Detector extends HttpInterceptor {
 
 			printDebugInfo(c);
 
-			// TODO: 3.3. Store UA Parser and Modernizr results in database
+			// 3.3. Store UA Parser and Modernizr results in database
 			BasicDBObject userAgentData = new BasicDBObject("string", userAgent)
 					.append("ua",
 							new BasicDBObject("family", c.userAgent.family).append("major",
@@ -96,7 +106,7 @@ public class Detector extends HttpInterceptor {
 					.append("device",
 							new BasicDBObject("family", c.device.family).append("isMobile",
 									c.device.isMobile).append("isSpider", c.device.isSpider))
-					.append("capabilities", new ArrayList<String>());
+					.append("capabilities", parsedCookie);
 
 			coll.insert(userAgentData);
 			log.info("=== DATABASE ===");
@@ -104,14 +114,46 @@ public class Detector extends HttpInterceptor {
 
 			// TODO: 3.4. Set UA features in context XML
 
-			return false;
+			return true;
 		}
 	}
-
-	@Override
-	public void postHandle(HttpServletRequest httpServletRequest,
-			HttpServletResponse httpServletResponse) throws Exception {
-		// Do nothing
+	
+	private BasicDBObject parseCookie(String cookie) {
+		if (cookie.length() > 0) {
+			BasicDBObject uaFeatures = new BasicDBObject();
+			for (String feature : cookie.split("\\|")) {
+				String[] nameValue = feature.split("--", 2);
+				String name = nameValue[0];
+				String value = nameValue[1];				
+				if (value.charAt(0) == '/') {
+					BasicDBObject valueObject = new BasicDBObject();
+					for (String subFeature : value.substring(1).split("/")) {
+						nameValue = subFeature.split("--", 2);
+						String subName = nameValue[0];
+						String subValue = nameValue[1];				
+						valueObject.append(subName, trueFalse(subValue));
+					}
+					uaFeatures.append(name, valueObject);
+				} else {
+					uaFeatures.append(name, trueFalse(value));
+				}
+			}
+			return uaFeatures;
+		} 
+		return null;
+	}
+	
+	private boolean trueFalse(String value) {
+		return value.equals("1") ? true : false;
+	}
+		
+	private Cookie getCookie(Cookie[] cookies, String cookieName) {
+		for (Cookie c : cookies) {
+			if (cookieName.equals(c.getName())) {
+				return c;
+			}
+		}
+		return null;
 	}
 
 	private String generateMarkup() {
@@ -123,54 +165,40 @@ public class Detector extends HttpInterceptor {
 		modernizrScript = sc.useDelimiter("\\Z").next();
 		sc.close();
 
-		return "<!DOCTYPE html><html class='no-js'><head>" + "<meta charset='utf-8'>"
-				+ "<title>Modernizr Test</title>" + "<script type='text/javascript'>\n"
-				+ modernizrScript + createCookieJS(true, "") + "console.log(Modernizr);" + "</script>"
-				+ "</head><body>Modernizr has run som tests and stored the result in a cookie.</body></html>";
+		return "<!DOCTYPE html><html><head><meta charset='utf-8'><script type='text/javascript'>" 
+				+ modernizrScript + createCookieJS(true)
+				+ "</script></head><body></body></html>";
 	}
 	
-	private String createCookieJS(boolean reload, String cookieExtra) {
-		String output = "var m=Modernizr;var c='';var k='';var f;"+
-		  "for(f in m){"+
-		    "var j='';"+
-		    "if(f[0]=='_'){continue;}"+
-		    "var t=typeof m[f];"+
-		    "if(t=='function'){continue;}"+
-		    "c+=(c?'|':'"+ this.cookieID + cookieExtra + "=')+f+':';"+
-		    "var kt=(f.slice(0,3)=='pr-')?true:false;"+
-		    "if(kt){k+=(k?'|':'" + this.cookieID + "-pr=')+f+':';}"+
-		    "if(t=='object'){"+
-			  "var s;"+
-		      "for(s in m[f]){"+
-				"if (typeof m[f][s]=='boolean'){j+='/'+s+':'+(m[f][s]?1:0);}"+
-		        "else{j+='/'+s+':'+m[f][s];}"+
-		      "}"+
-			  "c+=j;"+
-		      "k+=kt?j:'';"+
-		    "}else{"+
-		      "j=m[f]?'1':'0';"+
-		      "c+=j;"+
-		      "k+=kt?j:'';"+
-		    "}"+
-		  "}"+
-		  "c+=';path=/';"+
-		  "if(k){k+=';path=/';}"+
-		  "try{"+
-		    "if(getCookie()!='testData') {"+
-				"window.location=cookieRedirect;"+
-		    "}else{"+
-				"document.cookie=c;"+
-				"if(k){document.cookie=k;}";
-		if (reload) {
-			output += "document.location.reload();";
-		}
-		output += "}";
-		output += "}catch(e){}";
+	private String createCookieJS(boolean reload) {
+	
+		String output = "var m=Modernizr,c='';"+
+	      "for(var f in m){"+
+	        "if(f[0]=='_'){continue;}"+
+	        "var t=typeof m[f];"+
+	        "if(t=='function'){continue;}"+
+	        "c+=(c?'|':'" + this.cookieID + "=')+f+'--';"+
+	        "if(t=='object'){"+
+	          "for(var s in m[f]){"+
+	            "c+='/'+s+'--'+(m[f][s]?'1':'0');"+
+	          "}"+
+	        "}else{"+
+	          "c+=m[f]?'1':'0';"+
+	        "}"+
+	      "}"+
+	      "c+=';path=/';"+
+	      "try{"+
+	        "document.cookie=c;";
+	      if(reload) {
+	        output += "document.location.reload();";
+	      }
+	      output += "}catch(e){}";
+		
 		return output;
 	}
 	
 	private void sendClientTests(HttpServletResponse httpServletResponse) {
-		String markup = this.generateMarkup();
+		String markup = generateMarkup();
 		try {
 			PrintWriter w = httpServletResponse.getWriter();
 			w.write(markup);
@@ -219,5 +247,11 @@ public class Detector extends HttpInterceptor {
 
 	public void setMongoClient(MongoClient mongoClient) {
 		this.mongoClient = mongoClient;
+	}
+	
+	@Override
+	public void postHandle(HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse) throws Exception {
+		// Do nothing
 	}
 }
