@@ -293,8 +293,8 @@ public class Detector extends HttpInterceptor {
 	 * 							MongoDB collection of the given name if it does not exist
 	 */
 	private DBCollection getMongoCollection(DB db, String collectionName) {
-		return db.collectionExists(collectionName) ? 
-				db.getCollection(collectionName) : db.createCollection(collectionName, null);
+		return db.collectionExists(collectionName) ? db.getCollection(collectionName) : 
+			db.createCollection(collectionName, null);
 	}
 
 	/**
