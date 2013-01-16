@@ -7,7 +7,7 @@
 		<property name="priority" value="1" />
 		<property name="urlPattern" value="/site/.*" />
 		<property name="displayName" value="Detector Interceptor" />
-		<property name="environment" ref="plugin.service.pluginEnvironment" />
+		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
 		<property name="pluginConfig" ref="plugin.config" />
 	</bean>
 
