@@ -30,7 +30,7 @@ public class Detector extends HttpInterceptor {
 
 	private MongoClient mongoClient = null;
 	
-	private String cookieID = "Modernizr";
+	private String cookieID = "modernizr";
 
 	private Logger log = Logger.getLogger("Detector");
 
@@ -53,12 +53,13 @@ public class Detector extends HttpInterceptor {
 	public boolean preHandle(HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse) throws Exception {
 
-		// Database connection
+		// Get database config from plugin properties
 		String mongoURI = (String) pluginConfig.get("mongouri");
 		int mongoPort = Integer.parseInt(pluginConfig.get("mongoport"));
 		String mongoName = (String) pluginConfig.get("mongoname");
 		String mongoCollection = (String) pluginConfig.get("mongocollection");
-
+		
+		// Database connection
 		setMongoClient(new MongoClient(mongoURI, mongoPort));
 		DB db = mongoClient.getDB(mongoName);
 		DBCollection coll = getMongoCollection(db, mongoCollection);
@@ -94,19 +95,19 @@ public class Detector extends HttpInterceptor {
 
 			// 3.2 Check UA string for useful information
 			Parser uaParser = new Parser();
-			Client c = uaParser.parse(userAgent);
+			Client client = uaParser.parse(userAgent);
 
 			// 3.3. Store UA Parser and Modernizr results in database
 			BasicDBObject userAgentData = new BasicDBObject("user-agent", userAgent)
 					.append("ua",
-							new BasicDBObject("family", c.userAgent.family).append("major",
-									c.userAgent.major).append("minor", c.userAgent.minor))
+							new BasicDBObject("family", client.userAgent.family).append("major",
+									client.userAgent.major).append("minor", client.userAgent.minor))
 					.append("os",
-							new BasicDBObject("family", c.os.family).append("major", c.os.major)
-									.append("minor", c.os.minor))
+							new BasicDBObject("family", client.os.family).append("major", client.os.major)
+									.append("minor", client.os.minor))
 					.append("device",
-							new BasicDBObject("family", c.device.family).append("isMobile",
-									c.device.isMobile).append("isSpider", c.device.isSpider))
+							new BasicDBObject("family", client.device.family).append("isMobile",
+									client.device.isMobile).append("isSpider", client.device.isSpider))
 					.append("features", parsedCookie);
 
 			coll.insert(userAgentData);
@@ -172,6 +173,7 @@ public class Detector extends HttpInterceptor {
 	 * @return				the cookie object if the name is present in the array, null if not
 	 */
 	private Cookie getCookie(Cookie[] cookies, String cookieName) {
+		if (cookies == null || cookieName == null) { return null; }
 		for (Cookie c : cookies) {
 			if (cookieName.equals(c.getName())) {
 				return c;
