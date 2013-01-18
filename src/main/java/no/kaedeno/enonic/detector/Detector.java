@@ -54,20 +54,21 @@ public class Detector extends HttpInterceptor {
 			HttpServletResponse httpServletResponse) throws Exception {
 
 		// Get database config from plugin properties
-		String mongoURI = (String) pluginConfig.get("mongouri");
-		int mongoPort = Integer.parseInt(pluginConfig.get("mongoport"));
-		String mongoName = (String) pluginConfig.get("mongoname");
-		String mongoCollection = (String) pluginConfig.get("mongocollection");
+		String mongoURI = (String) pluginConfig.get("mongodb.uri");
+		int mongoPort = Integer.parseInt(pluginConfig.get("mongodb.port"));
+		String mongoName = (String) pluginConfig.get("mongodb.dbname");
+		String mongoCollection = (String) pluginConfig.get("mongodb.collection");
 		
 		// Database connection
 		setMongoClient(new MongoClient(mongoURI, mongoPort));
 		DB db = mongoClient.getDB(mongoName);
 		DBCollection coll = getMongoCollection(db, mongoCollection);
-
+		
+		
 		// 1. Look up UA string in database
 		String userAgent = httpServletRequest.getHeader("User-Agent");
-		DBObject result = coll.findOne(new BasicDBObject("user-agent", userAgent));
-
+		DBObject result = coll.findOne(new BasicDBObject("userAgent", userAgent));
+		
 		// 2. If found:
 		if (result != null) {
 
@@ -98,7 +99,7 @@ public class Detector extends HttpInterceptor {
 			Client client = uaParser.parse(userAgent);
 
 			// 3.3. Store UA Parser and Modernizr results in database
-			BasicDBObject userAgentData = new BasicDBObject("user-agent", userAgent)
+			BasicDBObject userAgentData = new BasicDBObject("userAgent", userAgent)
 					.append("ua",
 							new BasicDBObject("family", client.userAgent.family).append("major",
 									client.userAgent.major).append("minor", client.userAgent.minor))
@@ -110,7 +111,7 @@ public class Detector extends HttpInterceptor {
 									client.device.isMobile).append("isSpider", client.device.isSpider))
 					.append("features", parsedCookie);
 
-			coll.insert(userAgentData);
+			coll.save(userAgentData);
 			log.info("=== DATABASE ===");
 			log.info("Inserted into DB: " + userAgentData);
 
