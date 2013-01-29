@@ -1,25 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-	xmlns:mongo="http://www.springframework.org/schema/data/mongo"
-	xsi:schemaLocation="http://www.springframework.org/schema/data/mongo
-	http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
-	http://www.springframework.org/schema/beans 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
 	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
-	<bean class="no.kaedeno.enonic.detector.Detector">
+	<!-- HTTP Interceptor Bean -->
+	<bean class="no.kaedeno.enonic.detector.DetectorHttpInterceptor">
 		<property name="priority" value="1" />
 		<property name="urlPattern" value="/site/.*" />
 		<property name="displayName" value="Detector Interceptor" />
-		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
 		<property name="pluginConfig" ref="plugin.config" />
+		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
 	</bean>
 
-	<mongo:mongo host="${plugin.config.mongodb.uri}" port="${plugin.config.mongodb.port}" />
+	<!-- Extended Function Library Bean -->
+	<bean name="detectorFunctionLibrary" class="no.kaedeno.enonic.detector.DetectorFunctionLibrary">
+		<property name="pluginConfig" ref="plugin.config" />
+		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
+	</bean>
 
-	<bean id="mongoTemplate" class="org.springframework.data.document.mongodb.MongoTemplate">
-		<constructor-arg ref="mongo" />
-		<constructor-arg name="databaseName" value="${plugin.config.mongodb.dbname}" />
+	<!-- Function Library Bean -->
+	<bean class="com.enonic.cms.api.plugin.ext.FunctionLibrary">
+		<property name="name" value="detectorFunctionLibrary" />
+		<property name="displayName" value="Detector Function Library" />
+		<property name="target">
+			<ref bean="detectorFunctionLibrary" />
+		</property>
 	</bean>
 
 </beans>

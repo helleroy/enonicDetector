@@ -3,6 +3,7 @@ package no.kaedeno.enonic.detector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.Scanner;
 import java.util.logging.Logger;
@@ -15,24 +16,20 @@ import com.enonic.cms.api.plugin.PluginConfig;
 import com.enonic.cms.api.plugin.PluginEnvironment;
 import com.enonic.cms.api.plugin.ext.http.HttpInterceptor;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-
 import ua_parser.Parser;
 import ua_parser.Client;
 
-public class Detector extends HttpInterceptor {
+public class DetectorHttpInterceptor extends HttpInterceptor {
 
-	private PluginEnvironment pluginEnvironment = null;
 	private PluginConfig pluginConfig = null;
-
-	private MongoClient mongoClient = null;
+	private PluginEnvironment pluginEnvironment = null;
+	
+	private DetectorDAO dao = null;
 	
 	private String cookieID = "modernizr";
 
-	private Logger log = Logger.getLogger("Detector");
+	private Logger log = Logger.getLogger("DetectorHttpInterceptor");
 
 	/**
 	 * Handles the request received by the server before it is executed by Enonic CMS.
@@ -51,7 +48,7 @@ public class Detector extends HttpInterceptor {
 	 */
 	@Override
 	public boolean preHandle(HttpServletRequest httpServletRequest,
-			HttpServletResponse httpServletResponse) throws Exception {
+			HttpServletResponse httpServletResponse) {
 
 		// Get database config from plugin properties
 		String mongoURI = (String) pluginConfig.get("mongodb.uri");
@@ -60,14 +57,15 @@ public class Detector extends HttpInterceptor {
 		String mongoCollection = (String) pluginConfig.get("mongodb.collection");
 		
 		// Database connection
-		setMongoClient(new MongoClient(mongoURI, mongoPort));
-		DB db = mongoClient.getDB(mongoName);
-		DBCollection coll = getMongoCollection(db, mongoCollection);
-		
+		try {
+			dao = new DetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 		
 		// 1. Look up UA string in database
 		String userAgent = httpServletRequest.getHeader("User-Agent");
-		DBObject result = coll.findOne(new BasicDBObject("userAgent", userAgent));
+		DBObject result = dao.findOne("userAgent", httpServletRequest.getHeader("User-Agent"));
 		
 		// 2. If found:
 		if (result != null) {
@@ -95,7 +93,12 @@ public class Detector extends HttpInterceptor {
 			}
 
 			// 3.2 Check UA string for useful information
-			Parser uaParser = new Parser();
+			Parser uaParser = null;
+			try {
+				uaParser = new Parser();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			Client client = uaParser.parse(userAgent);
 
 			// 3.3. Store UA Parser and Modernizr results in database
@@ -111,7 +114,7 @@ public class Detector extends HttpInterceptor {
 									client.device.isMobile).append("isSpider", client.device.isSpider))
 					.append("features", parsedCookie);
 
-			coll.save(userAgentData);
+			dao.save(userAgentData);
 			log.info("=== DATABASE ===");
 			log.info("Inserted into DB: " + userAgentData);
 
@@ -286,45 +289,23 @@ public class Detector extends HttpInterceptor {
 			log.info("SESSION NOT FOUND");
 		}
 	}
-
+	
 	/**
-	 * Gets a MongoDB collection, or creates one if it does not exist.
+	 * Sets the Enonic CMS Plugin Environment 
 	 * 
-	 * @param db 				the MongoDB database object
-	 * @param collectionName	the name of the collection
-	 * @return					the MongoDB collection of the given name if it exists, or a new
-	 * 							MongoDB collection of the given name if it does not exist
-	 */
-	private DBCollection getMongoCollection(DB db, String collectionName) {
-		return db.collectionExists(collectionName) ? db.getCollection(collectionName) : 
-			db.createCollection(collectionName, null);
-	}
-
-	/**
-	 * Sets the Enonic Plugin Environment object
-	 * 
-	 * @param pluginEnvironment the Enonic Plugin Environment object
+	 * @param pluginEnvironment the plugin environment
 	 */
 	public void setPluginEnvironment(PluginEnvironment pluginEnvironment) {
 		this.pluginEnvironment = pluginEnvironment;
 	}
 
 	/**
-	 * Sets the Enonic Plugin Config object
+	 * Sets the Enonic CMS Plugin Configuration
 	 * 
-	 * @param pluginConfig the Enonic Plugin Config object
+	 * @param pluginConfig the plugin configuration
 	 */
 	public void setPluginConfig(PluginConfig pluginConfig) {
 		this.pluginConfig = pluginConfig;
-	}
-
-	/**
-	 * Sets the MongoDB client object
-	 * 
-	 * @param mongoClient the MongoDb client object
-	 */
-	public void setMongoClient(MongoClient mongoClient) {
-		this.mongoClient = mongoClient;
 	}
 	
 	/**
@@ -339,6 +320,4 @@ public class Detector extends HttpInterceptor {
 			HttpServletResponse httpServletResponse) throws Exception {
 		// Do nothing
 	}
-	
-
 }
