@@ -14,15 +14,14 @@ import org.xml.sax.InputSource;
 
 import com.enonic.cms.api.plugin.PluginConfig;
 import com.enonic.cms.api.plugin.PluginEnvironment;
-import com.enonic.cms.api.plugin.ext.FunctionLibrary;
 import com.mongodb.DBObject;
 
-public class DetectorFunctionLibrary extends FunctionLibrary {
+public class DetectorFunctionLibrary {
 
 	private PluginConfig pluginConfig = null;
 	private PluginEnvironment pluginEnvironment = null;
 
-	private DetectorDAO dao = null;
+	private MongoDetectorDAO dao = null;
 
 	private String mongoURI = null;
 	private int mongoPort = -1;
@@ -40,7 +39,7 @@ public class DetectorFunctionLibrary extends FunctionLibrary {
 		// Database connection
 		try {
 			setMongoPreferences();
-			dao = new DetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
+			dao = new MongoDetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
@@ -74,18 +73,18 @@ public class DetectorFunctionLibrary extends FunctionLibrary {
 		return null;
 	}
 
+	private void setMongoPreferences() {
+		this.mongoURI = (String) pluginConfig.get("mongodb.uri");
+		this.mongoPort = Integer.parseInt(pluginConfig.get("mongodb.port"));
+		this.mongoName = (String) pluginConfig.get("mongodb.dbname");
+		this.mongoCollection = (String) pluginConfig.get("mongodb.collection");
+	}
+	
 	public void setPluginConfig(PluginConfig pluginConfig) {
 		this.pluginConfig = pluginConfig;
 	}
 
 	public void setPluginEnvironment(PluginEnvironment pluginEnvironment) {
 		this.pluginEnvironment = pluginEnvironment;
-	}
-
-	public void setMongoPreferences() {
-		this.mongoURI = (String) pluginConfig.get("mongodb.uri");
-		this.mongoPort = Integer.parseInt(pluginConfig.get("mongodb.port"));
-		this.mongoName = (String) pluginConfig.get("mongodb.dbname");
-		this.mongoCollection = (String) pluginConfig.get("mongodb.collection");
 	}
 }

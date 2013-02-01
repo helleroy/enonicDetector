@@ -25,7 +25,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	private PluginConfig pluginConfig = null;
 	private PluginEnvironment pluginEnvironment = null;
 	
-	private DetectorDAO dao = null;
+	private MongoDetectorDAO dao = null;
 	
 	private String cookieID = "modernizr";
 
@@ -58,28 +58,23 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		
 		// Database connection
 		try {
-			dao = new DetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
+			dao = new MongoDetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
 		
-		// 1. Look up UA string in database
+		// Look up UA string in database
 		String userAgent = httpServletRequest.getHeader("User-Agent");
 		DBObject result = dao.findOne("userAgent", httpServletRequest.getHeader("User-Agent"));
 		
-		// 2. If found:
 		if (result != null) {
 
-			log.info("=== DATABASE ===");
-			log.info("Result from DB: " + result);
-
-			// TODO: 2.1 Set UA features in context XML
+			log.info("Result: " + result);
 
 			return true;
 		}
-		// 3. If not found:
 		else {
-			// 3.1 Send Modernizr tests to client
+			// Send Modernizr tests to client if they haven't been sent already
 			Cookie cookie = getCookie(httpServletRequest.getCookies(), this.cookieID);
 			BasicDBObject parsedCookie = null;
 			if (cookie == null) {
@@ -92,7 +87,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 				httpServletResponse.addCookie(cookie);
 			}
 
-			// 3.2 Check UA string for useful information
+			// Check UA string for useful information using UA Parser
 			Parser uaParser = null;
 			try {
 				uaParser = new Parser();
@@ -101,7 +96,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 			}
 			Client client = uaParser.parse(userAgent);
 
-			// 3.3. Store UA Parser and Modernizr results in database
+			// Store UA Parser and Modernizr results in database
 			BasicDBObject userAgentData = new BasicDBObject("userAgent", userAgent)
 					.append("ua",
 							new BasicDBObject("family", client.userAgent.family).append("major",
@@ -113,12 +108,10 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 							new BasicDBObject("family", client.device.family).append("isMobile",
 									client.device.isMobile).append("isSpider", client.device.isSpider))
 					.append("features", parsedCookie);
-
+			
 			dao.save(userAgentData);
-			log.info("=== DATABASE ===");
-			log.info("Inserted into DB: " + userAgentData);
-
-			// TODO: 3.4. Set UA features in context XML
+			
+			log.info("Inserted: " + userAgentData);
 
 			return true;
 		}
@@ -193,7 +186,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * @return the generated markup
 	 */
 	private String generateMarkup() {
-		String modernizrFile = (String) pluginConfig.get("modernizr");
+		String modernizrFile = (String) pluginConfig.get("modernizr.uri");
 		String modernizrScript = null;
 
 		InputStream is = getClass().getClassLoader().getResourceAsStream("/" + modernizrFile);
