@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans 
-	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+	<!-- DAO Bean -->
+	<bean name="detectorDAO" class="no.kaedeno.enonic.detector.DetectorMongoDAO">
+		<constructor-arg name="host" value="${plugin.config.mongodb.host}" />
+		<constructor-arg name="port" value="${plugin.config.mongodb.port}" />
+		<constructor-arg name="dbName"
+			value="${plugin.config.mongodb.dbname}" />
+		<constructor-arg name="collectionName"
+			value="${plugin.config.mongodb.collection}" />
+	</bean>
 
 	<!-- HTTP Interceptor Bean -->
 	<bean class="no.kaedeno.enonic.detector.DetectorHttpInterceptor">
@@ -11,6 +21,7 @@
 		<property name="displayName" value="Detector Interceptor" />
 		<property name="pluginConfig" ref="plugin.config" />
 		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
+		<property name="dao" ref="detectorDAO" />
 	</bean>
 
 	<!-- Extended Function Library Bean -->

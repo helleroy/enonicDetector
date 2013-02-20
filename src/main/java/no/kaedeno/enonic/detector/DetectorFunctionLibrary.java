@@ -21,12 +21,7 @@ public class DetectorFunctionLibrary {
 	private PluginConfig pluginConfig = null;
 	private PluginEnvironment pluginEnvironment = null;
 
-	private MongoDetectorDAO dao = null;
-
-	private String mongoURI = null;
-	private int mongoPort = -1;
-	private String mongoName = null;
-	private String mongoCollection = null;
+	private DetectorDAO<UserAgent> dao = null;
 
 	/**
 	 * Gets all detected features of the requesting user agent from the database 
@@ -35,26 +30,18 @@ public class DetectorFunctionLibrary {
 	 * @return a JDOM XML Document
 	 */
 	public Document getUAFeaturesXML() {
-
-		// Database connection
-		try {
-			setMongoPreferences();
-			dao = new MongoDetectorDAO(mongoURI, mongoPort, mongoName, mongoCollection);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
 		
 		String userAgent = pluginEnvironment.getCurrentRequest().getHeader("User-Agent");
-		DBObject result = dao.findOne("userAgent", userAgent);
+		UserAgent result = dao.findOne("userAgent", userAgent);
 		
 		// Build the JDOM XML Document object from the database result
-		try {
-			return new SAXBuilder().build(new InputSource(new StringReader(mongoToXML(result))));
-		} catch (JDOMException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			return new SAXBuilder().build(new InputSource(new StringReader(mongoToXML(result))));
+//		} catch (JDOMException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 		return null;
 	}
 	
@@ -73,12 +60,6 @@ public class DetectorFunctionLibrary {
 		return null;
 	}
 
-	private void setMongoPreferences() {
-		this.mongoURI = (String) pluginConfig.get("mongodb.uri");
-		this.mongoPort = Integer.parseInt(pluginConfig.get("mongodb.port"));
-		this.mongoName = (String) pluginConfig.get("mongodb.dbname");
-		this.mongoCollection = (String) pluginConfig.get("mongodb.collection");
-	}
 	
 	public void setPluginConfig(PluginConfig pluginConfig) {
 		this.pluginConfig = pluginConfig;
@@ -86,5 +67,9 @@ public class DetectorFunctionLibrary {
 
 	public void setPluginEnvironment(PluginEnvironment pluginEnvironment) {
 		this.pluginEnvironment = pluginEnvironment;
+	}
+	
+	public void setDao(DetectorDAO<UserAgent> dao) {
+		this.dao = dao;
 	}
 }
