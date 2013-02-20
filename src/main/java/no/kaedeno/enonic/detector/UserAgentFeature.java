@@ -7,6 +7,14 @@ public class UserAgentFeature {
 	private boolean supported;
 	private Map<String, Boolean> subFeature;
 
+	public UserAgentFeature() {
+	}
+	
+	public UserAgentFeature(boolean supported) {
+		this.supported = supported;
+		this.subFeature = null;
+	}
+	
 	public boolean isSupported() {
 		return supported;
 	}

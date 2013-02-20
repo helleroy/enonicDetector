@@ -22,12 +22,13 @@ import com.enonic.cms.api.plugin.ext.http.HttpInterceptor;
 
 public class DetectorHttpInterceptor extends HttpInterceptor {
 
+	private final String NOSCRIPT_PARAMETER = "nojs";
+	private final String MODERNIZR_COOKIE_ID = "detectorModernizr";
+
 	private PluginConfig pluginConfig = null;
 	private PluginEnvironment pluginEnvironment = null;
 
 	private DetectorDAO<UserAgent> dao = null;
-
-	private String cookieID = "modernizr";
 
 	private Logger log = Logger.getLogger("DetectorHttpInterceptor");
 
@@ -65,16 +66,24 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 			return true;
 		} else {
 			// Send Modernizr tests to client if they haven't been sent already
-			Cookie cookie = getCookie(httpServletRequest.getCookies(), this.cookieID);
 			Map<String, UserAgentFeature> parsedCookie = null;
-			if (cookie == null) {
-				sendClientTests(httpServletResponse);
-				return false;
+
+			// Check if the client has responded with not supporting JavaScript
+			String nojsParam = httpServletRequest.getParameter(this.NOSCRIPT_PARAMETER);
+
+			if (nojsParam != null && nojsParam.compareTo("true") == 0) {
+				parsedCookie = new LinkedHashMap<String, UserAgentFeature>();
+				parsedCookie.put(this.NOSCRIPT_PARAMETER, new UserAgentFeature(true));
 			} else {
-				parsedCookie = parseCookie(cookie.getValue());
-				cookie.setMaxAge(0);
-				cookie.setValue("");
-				httpServletResponse.addCookie(cookie);
+				// Check if the client has responded with a client feature
+				// cookie. Send the Modernizr tests to the client if not
+				Cookie cookie = getCookie(httpServletRequest.getCookies(), this.MODERNIZR_COOKIE_ID);
+				if (cookie == null) {
+					sendClientTests(httpServletRequest, httpServletResponse);
+					return false;
+				} else {
+					parsedCookie = parseCookie(cookie.getValue());
+				}
 			}
 
 			// Check UA string for useful information using UA Parser
@@ -102,14 +111,14 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 	/**
 	 * Parses the value of a cookie with the detector cookie format and builds a
-	 * UserAgent object out of it.
+	 * UserAgentFeature HashMap out of it.
 	 * 
 	 * Adapted from modernizr-server
 	 * 
 	 * @param cookie
 	 *            the value of a cookie as a string
-	 * @return the UserAgent object containing the information from the cookie
-	 *         or null if the value is null or has a length of 0
+	 * @return a HashMap containing the information from the cookie or null if
+	 *         the value is null or has a length of 0
 	 */
 	private Map<String, UserAgentFeature> parseCookie(String cookie) {
 		if (cookie == null || cookie.length() > 0) {
@@ -137,6 +146,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 					uaFeature.setSubFeature(uaSubFeatures);
 					uaFeatures.put(name, uaFeature);
+
 				} else {
 					uaFeature.setSupported(trueFalse(value));
 					uaFeatures.put(name, uaFeature);
@@ -185,9 +195,12 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * Generates a string with HTML markup and the appropriate JavaScript code
 	 * to run Modernizr tests on the client.
 	 * 
+	 * @param httpServletRequest
+	 *            the http request
+	 * 
 	 * @return the generated markup
 	 */
-	private String generateMarkup() {
+	private String generateMarkup(HttpServletRequest httpServletRequest) {
 		String modernizrFile = (String) pluginConfig.get("modernizr.uri");
 		String modernizrScript = null;
 
@@ -197,7 +210,9 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		sc.close();
 
 		return "<!DOCTYPE html><html><head><meta charset='utf-8'><script type='text/javascript'>"
-				+ modernizrScript + generateCookieJS(true) + "</script></head><body></body></html>";
+				+ modernizrScript + generateCookieJS(true)
+				+ "</script></head><body><noscript><meta http-equiv='refresh' content='0; url="
+				+ generateNoscriptRedirect(httpServletRequest) + "'></noscript></body></html>";
 	}
 
 	/**
@@ -212,18 +227,36 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * @return the generated code
 	 */
 	private String generateCookieJS(boolean reload) {
-
 		String output = "var m=Modernizr,c='';" + "for(var f in m){" + "if(f[0]=='_'){continue;}"
 				+ "var t=typeof m[f];" + "if(t=='function'){continue;}" + "c+=(c?'|':'"
-				+ this.cookieID + "=')+f+'--';" + "if(t=='object'){" + "for(var s in m[f]){"
-				+ "c+='/'+s+'--'+(m[f][s]?'1':'0');" + "}" + "}else{" + "c+=m[f]?'1':'0';" + "}"
-				+ "}" + "c+=';path=/';" + "try{" + "document.cookie=c;";
+				+ this.MODERNIZR_COOKIE_ID + "=')+f+'--';" + "if(t=='object'){"
+				+ "for(var s in m[f]){" + "c+='/'+s+'--'+(m[f][s]?'1':'0');" + "}" + "}else{"
+				+ "c+=m[f]?'1':'0';" + "}" + "}" + "c+=';path=/';" + "try{" + "document.cookie=c;";
 		if (reload) {
 			output += "document.location.reload();";
 		}
 		output += "}catch(e){}";
 
 		return output;
+	}
+
+	/**
+	 * Generates a noscript redirect url, so that browsers without JavaScript
+	 * support can be redirected back to the correct page.
+	 * 
+	 * @param httpServletRequest
+	 *            the http request
+	 * @return the generated noscript redirect url
+	 */
+	private String generateNoscriptRedirect(HttpServletRequest httpServletRequest) {
+		String url = httpServletRequest.getRequestURL().toString();
+		String queryParams = httpServletRequest.getQueryString();
+		if (queryParams != null) {
+			url += "?" + queryParams + "&" + this.NOSCRIPT_PARAMETER + "=true";
+		} else {
+			url += "?" + this.NOSCRIPT_PARAMETER + "=true";
+		}
+		return url;
 	}
 
 	/**
@@ -234,8 +267,10 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * @param httpServletResponse
 	 *            the http response
 	 */
-	private void sendClientTests(HttpServletResponse httpServletResponse) {
-		String markup = generateMarkup();
+	private void sendClientTests(HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse) {
+
+		String markup = generateMarkup(httpServletRequest);
 		try {
 			PrintWriter w = httpServletResponse.getWriter();
 			w.write(markup);
