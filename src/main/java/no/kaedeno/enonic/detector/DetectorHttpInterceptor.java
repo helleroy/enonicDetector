@@ -63,6 +63,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 			log.info("Result: " + result);
 
+			DetectorFunctionLibrary.findFamily(result, (String) pluginConfig.get("families.uri"));
+
 			return true;
 		} else {
 			// Send Modernizr tests to client if they haven't been sent already

@@ -1,0 +1,18 @@
+{
+	"somefamily" : {
+		"uaFamily" : "Chrome",
+		"osFamily" : "Mac OS X",
+		"features" : {
+			"video" : {
+				"h264" : true,
+				"webm" : true
+			}
+		}
+	},
+	"default" : {
+		"isMobile" : false,
+		"features" : {
+			"flexbox" : true
+		}
+	}
+}
