@@ -2,6 +2,7 @@
 	"somefamily" : {
 		"uaFamily" : "Chrome",
 		"osFamily" : "Mac OS X",
+		"isMobile" : false,
 		"features" : {
 			"video" : {
 				"h264" : true,

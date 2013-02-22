@@ -63,7 +63,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 			log.info("Result: " + result);
 
-			DetectorFunctionLibrary.findFamily(result, (String) pluginConfig.get("families.uri"));
+			String family = DetectorFunctionLibrary.findFamily(result, (String) pluginConfig.get("families.uri"));
+			log.info(family);
 
 			return true;
 		} else {

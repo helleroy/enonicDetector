@@ -31,6 +31,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class DetectorFunctionLibrary {
 
+	private static final String DEFAULT_FAMILY = "default";
+
 	private PluginConfig pluginConfig = null;
 	private PluginEnvironment pluginEnvironment = null;
 
@@ -71,7 +73,7 @@ public class DetectorFunctionLibrary {
 	 *            the UserAgent object
 	 * @return the marshalled UserAgent object as an XML Document
 	 */
-	public Document userAgentToDocument(UserAgent userAgent) {
+	private Document userAgentToDocument(UserAgent userAgent) {
 		try {
 			// Marshal the UserAgent result to XML
 			JAXBContext context = JAXBContext.newInstance(UserAgent.class);
@@ -99,6 +101,16 @@ public class DetectorFunctionLibrary {
 		return null;
 	}
 
+	/**
+	 * Reads the JSON family file specified in the plugin config and attempts to
+	 * find a match with the current user agent object
+	 * 
+	 * @param userAgent
+	 *            the current user agent object
+	 * @param jsonFileName
+	 *            the file name of the JSON family file
+	 * @return the best matching family as a string
+	 */
 	public static String findFamily(UserAgent userAgent, String jsonFileName) {
 		Logger log = Logger.getLogger("DARKSIDE");
 
@@ -121,42 +133,32 @@ public class DetectorFunctionLibrary {
 			ObjectMapper mapper = new ObjectMapper();
 			JsonNode jsonObject = mapper.readTree(jsonFile);
 
+			String bestFitFamily = DetectorFunctionLibrary.DEFAULT_FAMILY;
+			int mostFieldsMatched = 0;
+
+			String currentFamily = DetectorFunctionLibrary.DEFAULT_FAMILY;
+			int currentFieldsMatched = 0;
+
 			// Iterate over each family
 			Iterator<Entry<String, JsonNode>> familyIterator = jsonObject.fields();
 			while (familyIterator.hasNext()) {
+
+				if (currentFieldsMatched > mostFieldsMatched) {
+					bestFitFamily = currentFamily;
+					mostFieldsMatched = currentFieldsMatched;
+				}
+
 				Entry<String, JsonNode> family = familyIterator.next();
-				String familyName = family.getKey();
+				currentFamily = family.getKey();
 				JsonNode familyFeatures = family.getValue();
 
-				log.info("FAMILY FIELD: " + family.toString());
+				currentFieldsMatched = traverseJSONAndCountMatches(familyFeatures, currentFamily,
+						userAgent);
 
-				// Iterate over each feature test in the family
-				Iterator<Entry<String, JsonNode>> familyFeatureIterator = familyFeatures.fields();
-				while (familyFeatureIterator.hasNext()) {
-					Entry<String, JsonNode> feature = familyFeatureIterator.next();
-					String featureName = feature.getKey();
-					JsonNode featureValue = feature.getValue();
-
-					log.info("FEATURE FIELD: " + feature.toString());
-					
-					if (!featureValue.isObject()) {
-						log.info("FEATURE VALUE IS NOT OBJECT");
-						
-						// TEST THE SIMPLE VALUE EITHER BOOLEAN OR STRING
-					} else {
-						// Iterate over each sub feaure test in the feature
-						Iterator<Entry<String, JsonNode>> familySubFeatureIterator = featureValue
-								.fields();
-						while(familySubFeatureIterator.hasNext()) {
-							Entry<String, JsonNode> subFeature = familySubFeatureIterator.next();
-							String subFeatureName = subFeature.getKey();
-							JsonNode subFeatureValue = subFeature.getValue();
-							
-							log.info("SUB FEATURE FIELD: " + subFeature.toString());
-						}
-					}
-				}
+				log.info("MATCHED FIELDS: " + currentFieldsMatched);
 			}
+
+			return bestFitFamily;
 
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
@@ -165,6 +167,94 @@ public class DetectorFunctionLibrary {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Recursively traverses a JSON object, tests each value against the current
+	 * user agent and counts the number of matches
+	 * 
+	 * @param json
+	 *            the JSON object to traverse
+	 * @param parent
+	 *            the parent key of the current JSON object
+	 * @param userAgent
+	 *            the current user agent object
+	 * @return the number of fields matched. 0 is returned if any fields do not
+	 *         match
+	 */
+	private static int traverseJSONAndCountMatches(JsonNode json, String parent, UserAgent userAgent) {
+		int matchedFields = 0;
+
+		Iterator<Entry<String, JsonNode>> jsonIterator = json.fields();
+		while (jsonIterator.hasNext()) {
+			Entry<String, JsonNode> jsonEntry = jsonIterator.next();
+			String key = jsonEntry.getKey();
+			JsonNode value = jsonEntry.getValue();
+
+			if (!value.isObject()) {
+				if (testUAFeature(key, value.asText(), parent, userAgent)) {
+					matchedFields++;
+				} else {
+					return 0;
+				}
+			} else {
+				int recursivelyMatched = traverseJSONAndCountMatches(value, key, userAgent);
+				if (recursivelyMatched == 0) {
+					return 0;
+				} else {
+					matchedFields += recursivelyMatched;
+				}
+			}
+		}
+		return matchedFields;
+	}
+
+	/**
+	 * Tests a value from the JSON family object against the current user agent
+	 * object
+	 * 
+	 * @param key
+	 *            a key from the JSON family object
+	 * @param value
+	 *            a value from the JSON family object
+	 * @param parent
+	 *            the parent of the JSON family object with <b>key</b>
+	 * @param userAgent
+	 *            the current user agent object
+	 * @return true if a match is found, false otherwise
+	 */
+	private static boolean testUAFeature(String key, String value, String parent,
+			UserAgent userAgent) {
+		if (key.compareToIgnoreCase("uaFamily") == 0) {
+			return value.compareToIgnoreCase(userAgent.getUaFamily()) == 0;
+		} else if (key.compareToIgnoreCase("uaMajor") == 0) {
+			return value.compareToIgnoreCase(userAgent.getUaMajor()) == 0;
+		} else if (key.compareToIgnoreCase("uaMinor") == 0) {
+			return value.compareToIgnoreCase(userAgent.getUaMinor()) == 0;
+		} else if (key.compareToIgnoreCase("osFamily") == 0) {
+			return value.compareToIgnoreCase(userAgent.getOsFamily()) == 0;
+		} else if (key.compareToIgnoreCase("osMajor") == 0) {
+			return value.compareToIgnoreCase(userAgent.getOsMajor()) == 0;
+		} else if (key.compareToIgnoreCase("uaMinor") == 0) {
+			return value.compareToIgnoreCase(userAgent.getOsMinor()) == 0;
+		} else if (key.compareToIgnoreCase("deviceFamily") == 0) {
+			return value.compareToIgnoreCase(userAgent.getDeviceFamily()) == 0;
+		} else if (key.compareToIgnoreCase("isMobile") == 0) {
+			return Boolean.parseBoolean(value) == userAgent.isDeviceIsMobile();
+		} else if (key.compareToIgnoreCase("isSpider") == 0) {
+			return Boolean.parseBoolean(value) == userAgent.isDeviceIsSpider();
+		} else {
+			UserAgentFeature userAgentFeature = userAgent.getFeatures().get(parent);
+			if (userAgentFeature != null) {
+				if (userAgentFeature.getSubFeature() == null) {
+					return Boolean.parseBoolean(value) == userAgentFeature.isSupported();
+				} else {
+					return userAgentFeature.getSubFeature().get(key) == Boolean.parseBoolean(value);
+				}
+			} else {
+				return false;
+			}
+		}
 	}
 
 	public void setPluginConfig(PluginConfig pluginConfig) {
