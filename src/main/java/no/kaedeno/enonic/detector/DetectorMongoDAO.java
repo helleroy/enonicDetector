@@ -1,6 +1,7 @@
 package no.kaedeno.enonic.detector;
 
 import java.net.UnknownHostException;
+
 import org.mongojack.JacksonDBCollection;
 import org.mongojack.WriteResult;
 
@@ -34,11 +35,12 @@ public class DetectorMongoDAO implements DetectorDAO<UserAgent> {
 
 	}
 
-	public void update(UserAgent obj) {
-		// TODO Auto-generated method stub
+	public UserAgent update(UserAgent obj) {
+		WriteResult<UserAgent, String> result = jackColl.updateById(obj.getId(), obj);
+		return result.getSavedObject();
 	}
 
 	public void remove(UserAgent obj) {
-		// TODO Auto-generated method stub
+		jackColl.remove(obj);
 	}
 }

@@ -20,7 +20,6 @@
 		<property name="urlPattern" value="/site/.*" />
 		<property name="displayName" value="Detector Interceptor" />
 		<property name="pluginConfig" ref="plugin.config" />
-		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
 		<property name="dao" ref="detectorDAO" />
 	</bean>
 

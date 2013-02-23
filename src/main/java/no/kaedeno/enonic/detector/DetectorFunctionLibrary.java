@@ -114,14 +114,15 @@ public class DetectorFunctionLibrary {
 	public static String findFamily(UserAgent userAgent, String jsonFileName) {
 		Logger log = Logger.getLogger("DARKSIDE");
 
+		// Read the JSON families file. Reads from different sources depending
+		// on the file being the default contained in the project or an
+		// external, user-defined file.
 		Scanner sc;
 		File file;
 		try {
 			file = new File(jsonFileName);
 			sc = new Scanner(file);
-			log.info("FILE IS EXTERNAL");
 		} catch (FileNotFoundException e) {
-			log.info("FILE IS INTERNAL");
 			InputStream is = DetectorFunctionLibrary.class.getClassLoader().getResourceAsStream(
 					"/" + jsonFileName);
 			sc = new Scanner(is);
@@ -129,6 +130,7 @@ public class DetectorFunctionLibrary {
 		String jsonFile = sc.useDelimiter("\\Z").next();
 		sc.close();
 
+		// Find a match in the JSON family object
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			JsonNode jsonObject = mapper.readTree(jsonFile);
@@ -136,7 +138,7 @@ public class DetectorFunctionLibrary {
 			String bestFitFamily = DetectorFunctionLibrary.DEFAULT_FAMILY;
 			int mostFieldsMatched = 0;
 
-			String currentFamily = DetectorFunctionLibrary.DEFAULT_FAMILY;
+			String currentFamily = bestFitFamily;
 			int currentFieldsMatched = 0;
 
 			// Iterate over each family
@@ -155,7 +157,7 @@ public class DetectorFunctionLibrary {
 				currentFieldsMatched = traverseJSONAndCountMatches(familyFeatures, currentFamily,
 						userAgent);
 
-				log.info("MATCHED FIELDS: " + currentFieldsMatched);
+				log.info("MATCHED FIELDS FOR " + currentFamily + ": " + currentFieldsMatched);
 			}
 
 			return bestFitFamily;

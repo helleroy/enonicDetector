@@ -1,9 +1,10 @@
 package no.kaedeno.enonic.detector;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -17,7 +18,6 @@ import ua_parser.Client;
 import ua_parser.Parser;
 
 import com.enonic.cms.api.plugin.PluginConfig;
-import com.enonic.cms.api.plugin.PluginEnvironment;
 import com.enonic.cms.api.plugin.ext.http.HttpInterceptor;
 
 public class DetectorHttpInterceptor extends HttpInterceptor {
@@ -26,7 +26,6 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	private final String MODERNIZR_COOKIE_ID = "detectorModernizr";
 
 	private PluginConfig pluginConfig = null;
-	private PluginEnvironment pluginEnvironment = null;
 
 	private DetectorDAO<UserAgent> dao = null;
 
@@ -41,8 +40,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * user-agent features, and parses the user-agent string for any useful
 	 * information.
 	 * <p>
-	 * The features and capabilities are written to the Enonic device class
-	 * resvolver script XML.
+	 * The features and capabilities are written to the database defined by the
+	 * plugin properties and Spring context.
 	 * 
 	 * @param httpServletRequest
 	 *            the http request
@@ -63,7 +62,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 			log.info("Result: " + result);
 
-			String family = DetectorFunctionLibrary.findFamily(result, (String) pluginConfig.get("families.uri"));
+			String family = DetectorFunctionLibrary.findFamily(result,
+					(String) pluginConfig.get("families.uri"));
 			log.info(family);
 
 			return true;
@@ -113,8 +113,21 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	}
 
 	/**
+	 * Handles the request after it has been executed by Enonic CMS.
+	 * 
+	 * @param httpServletRequest
+	 *            the http request
+	 * @param httpServletResponse
+	 *            the http response
+	 */
+	@Override
+	public void postHandle(HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse) throws Exception {
+	}
+
+	/**
 	 * Parses the value of a cookie with the detector cookie format and builds a
-	 * UserAgentFeature HashMap out of it.
+	 * UserAgentFeature Map out of it.
 	 * 
 	 * Adapted from modernizr-server
 	 * 
@@ -200,15 +213,25 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	 * 
 	 * @param httpServletRequest
 	 *            the http request
-	 * 
 	 * @return the generated markup
 	 */
 	private String generateMarkup(HttpServletRequest httpServletRequest) {
-		String modernizrFile = (String) pluginConfig.get("modernizr.uri");
+		String modernizrFileName = (String) pluginConfig.get("modernizr.uri");
 		String modernizrScript = null;
 
-		InputStream is = getClass().getClassLoader().getResourceAsStream("/" + modernizrFile);
-		Scanner sc = new Scanner(is);
+		// Read the Modernizr file. Reads from different sources depending on
+		// the file being the default file contained in the project or an
+		// external, user-defined file.
+		Scanner sc;
+		File file;
+		try {
+			file = new File(modernizrFileName);
+			sc = new Scanner(file);
+		} catch (FileNotFoundException e) {
+			InputStream is = getClass().getClassLoader().getResourceAsStream(
+					"/" + modernizrFileName);
+			sc = new Scanner(is);
+		}
 		modernizrScript = sc.useDelimiter("\\Z").next();
 		sc.close();
 
@@ -220,7 +243,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 	/**
 	 * Generates the JavaScript code for reading the Modernizr test result
-	 * object and writes the results to a cookie formatted in key-value pairs.
+	 * object on the client, and writes the results to a cookie formatted in
+	 * key-value pairs.
 	 * 
 	 * Adapted from modernizr-server
 	 * 
@@ -245,7 +269,8 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 	/**
 	 * Generates a noscript redirect url, so that browsers without JavaScript
-	 * support can be redirected back to the correct page.
+	 * support can be redirected back to the correct page. Adds a GET parameter
+	 * to the URL so that the plugin can detect the lack of JavaScript support
 	 * 
 	 * @param httpServletRequest
 	 *            the http request
@@ -282,80 +307,11 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		}
 	}
 
-	/**
-	 * Prints various debug information to the logger
-	 * 
-	 * @param c
-	 *            the UA parser Client object
-	 */
-	@SuppressWarnings("unused")
-	private void printDebugInfo(Client c) {
-		log.info("=== UA PARSER RESULT ===");
-		log.info("UA Family: " + c.userAgent.family);
-		log.info("UA Major version: " + c.userAgent.major);
-		log.info("UA Minor version: " + c.userAgent.minor);
-
-		log.info("OS Family: " + c.os.family);
-		log.info("OS Major version: " + c.os.major);
-		log.info("OS Minor version: " + c.os.minor);
-
-		log.info("Device Family: " + c.device.family);
-		log.info("Device is mobile: " + new Boolean(c.device.isMobile).toString());
-		log.info("Device is a spider: " + new Boolean(c.device.isSpider).toString());
-
-		log.info("=== SESSION ===");
-		if (pluginEnvironment != null) {
-			Enumeration<?> attNames = pluginEnvironment.getCurrentSession().getAttributeNames();
-			while (attNames.hasMoreElements()) {
-				log.info("Session attribute name: " + attNames.nextElement());
-			}
-		} else {
-			log.info("SESSION NOT FOUND");
-		}
-	}
-
-	/**
-	 * Sets the Enonic CMS Plugin Environment
-	 * 
-	 * @param pluginEnvironment
-	 *            the plugin environment
-	 */
-	public void setPluginEnvironment(PluginEnvironment pluginEnvironment) {
-		this.pluginEnvironment = pluginEnvironment;
-	}
-
-	/**
-	 * Sets the Enonic CMS Plugin Configuration
-	 * 
-	 * @param pluginConfig
-	 *            the plugin configuration
-	 */
 	public void setPluginConfig(PluginConfig pluginConfig) {
 		this.pluginConfig = pluginConfig;
 	}
 
-	/**
-	 * Sets the Database Access Object (DAO)
-	 * 
-	 * @param dao
-	 *            the data access object
-	 */
 	public void setDao(DetectorDAO<UserAgent> dao) {
 		this.dao = dao;
-	}
-
-	/**
-	 * Handles the request after it has been executed by Enonic CMS. Should do
-	 * nothing in this plugin.
-	 * 
-	 * @param httpServletRequest
-	 *            the http request
-	 * @param httpServletResponse
-	 *            the http response
-	 */
-	@Override
-	public void postHandle(HttpServletRequest httpServletRequest,
-			HttpServletResponse httpServletResponse) throws Exception {
-		// Do nothing
 	}
 }
