@@ -22,8 +22,8 @@ import com.enonic.cms.api.plugin.ext.http.HttpInterceptor;
 
 public class DetectorHttpInterceptor extends HttpInterceptor {
 
-	private final String NOSCRIPT_PARAMETER = "nojs";
-	private final String MODERNIZR_COOKIE_ID = "detectorModernizr";
+	private static final String NOSCRIPT_PARAMETER = "nojs";
+	private static final String MODERNIZR_COOKIE_ID = "detectorModernizr";
 
 	private PluginConfig pluginConfig = null;
 
@@ -62,25 +62,24 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 
 			log.info("Result: " + result);
 
-			String family = DetectorFunctionLibrary.findFamily(result,
-					(String) pluginConfig.get("families.uri"));
-			log.info(family);
-
 			return true;
 		} else {
 			// Send Modernizr tests to client if they haven't been sent already
 			Map<String, UserAgentFeature> parsedCookie = null;
 
 			// Check if the client has responded with not supporting JavaScript
-			String nojsParam = httpServletRequest.getParameter(this.NOSCRIPT_PARAMETER);
+			String nojsParam = httpServletRequest
+					.getParameter(DetectorHttpInterceptor.NOSCRIPT_PARAMETER);
 
 			if (nojsParam != null && nojsParam.compareTo("true") == 0) {
 				parsedCookie = new LinkedHashMap<String, UserAgentFeature>();
-				parsedCookie.put(this.NOSCRIPT_PARAMETER, new UserAgentFeature(true));
+				parsedCookie.put(DetectorHttpInterceptor.NOSCRIPT_PARAMETER, new UserAgentFeature(
+						true));
 			} else {
 				// Check if the client has responded with a client feature
 				// cookie. Send the Modernizr tests to the client if not
-				Cookie cookie = getCookie(httpServletRequest.getCookies(), this.MODERNIZR_COOKIE_ID);
+				Cookie cookie = getCookie(httpServletRequest.getCookies(),
+						DetectorHttpInterceptor.MODERNIZR_COOKIE_ID);
 				if (cookie == null) {
 					sendClientTests(httpServletRequest, httpServletResponse);
 					return false;
@@ -256,7 +255,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	private String generateCookieJS(boolean reload) {
 		String output = "var m=Modernizr,c='';" + "for(var f in m){" + "if(f[0]=='_'){continue;}"
 				+ "var t=typeof m[f];" + "if(t=='function'){continue;}" + "c+=(c?'|':'"
-				+ this.MODERNIZR_COOKIE_ID + "=')+f+'--';" + "if(t=='object'){"
+				+ DetectorHttpInterceptor.MODERNIZR_COOKIE_ID + "=')+f+'--';" + "if(t=='object'){"
 				+ "for(var s in m[f]){" + "c+='/'+s+'--'+(m[f][s]?'1':'0');" + "}" + "}else{"
 				+ "c+=m[f]?'1':'0';" + "}" + "}" + "c+=';path=/';" + "try{" + "document.cookie=c;";
 		if (reload) {
@@ -280,9 +279,9 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		String url = httpServletRequest.getRequestURL().toString();
 		String queryParams = httpServletRequest.getQueryString();
 		if (queryParams != null) {
-			url += "?" + queryParams + "&" + this.NOSCRIPT_PARAMETER + "=true";
+			url += "?" + queryParams + "&" + DetectorHttpInterceptor.NOSCRIPT_PARAMETER + "=true";
 		} else {
-			url += "?" + this.NOSCRIPT_PARAMETER + "=true";
+			url += "?" + DetectorHttpInterceptor.NOSCRIPT_PARAMETER + "=true";
 		}
 		return url;
 	}

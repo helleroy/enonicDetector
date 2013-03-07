@@ -27,6 +27,7 @@
 	<bean name="detectorFunctionLibrary" class="no.kaedeno.enonic.detector.DetectorFunctionLibrary">
 		<property name="pluginConfig" ref="plugin.config" />
 		<property name="pluginEnvironment" ref="plugin.service.pluginEnvironment" />
+		<property name="dao" ref="detectorDAO" />
 	</bean>
 
 	<!-- Function Library Bean -->

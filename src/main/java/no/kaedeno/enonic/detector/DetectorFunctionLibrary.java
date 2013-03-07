@@ -9,8 +9,6 @@ import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Scanner;
-import java.util.logging.Logger;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -111,8 +109,7 @@ public class DetectorFunctionLibrary {
 	 *            the file name of the JSON family file
 	 * @return the best matching family as a string
 	 */
-	public static String findFamily(UserAgent userAgent, String jsonFileName) {
-		Logger log = Logger.getLogger("DARKSIDE");
+	public String findFamily(UserAgent userAgent, String jsonFileName) {
 
 		// Read the JSON families file. Reads from different sources depending
 		// on the file being the default contained in the project or an
@@ -156,8 +153,6 @@ public class DetectorFunctionLibrary {
 
 				currentFieldsMatched = traverseJSONAndCountMatches(familyFeatures, currentFamily,
 						userAgent);
-
-				log.info("MATCHED FIELDS FOR " + currentFamily + ": " + currentFieldsMatched);
 			}
 
 			return bestFitFamily;
@@ -184,7 +179,7 @@ public class DetectorFunctionLibrary {
 	 * @return the number of fields matched. 0 is returned if any fields do not
 	 *         match
 	 */
-	private static int traverseJSONAndCountMatches(JsonNode json, String parent, UserAgent userAgent) {
+	private int traverseJSONAndCountMatches(JsonNode json, String parent, UserAgent userAgent) {
 		int matchedFields = 0;
 
 		Iterator<Entry<String, JsonNode>> jsonIterator = json.fields();
@@ -225,8 +220,7 @@ public class DetectorFunctionLibrary {
 	 *            the current user agent object
 	 * @return true if a match is found, false otherwise
 	 */
-	private static boolean testUAFeature(String key, String value, String parent,
-			UserAgent userAgent) {
+	private boolean testUAFeature(String key, String value, String parent, UserAgent userAgent) {
 		if (key.compareToIgnoreCase("uaFamily") == 0) {
 			return value.compareToIgnoreCase(userAgent.getUaFamily()) == 0;
 		} else if (key.compareToIgnoreCase("uaMajor") == 0) {
