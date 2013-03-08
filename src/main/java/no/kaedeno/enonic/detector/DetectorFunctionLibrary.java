@@ -109,7 +109,7 @@ public class DetectorFunctionLibrary {
 	 *            the file name of the JSON family file
 	 * @return the best matching family as a string
 	 */
-	public String findFamily(UserAgent userAgent, String jsonFileName) {
+	private String findFamily(UserAgent userAgent, String jsonFileName) {
 
 		// Read the JSON families file. Reads from different sources depending
 		// on the file being the default contained in the project or an
