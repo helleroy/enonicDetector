@@ -54,9 +54,15 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 	public boolean preHandle(HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse) {
 
+		// Check if it's not the initial request, in which case we should not
+		// query the database
+		if (!httpServletRequest.getHeader("accept").contains("text/html")) {
+			return true;
+		}
+
 		// Look up UA string in database
 		String userAgent = httpServletRequest.getHeader("User-Agent");
-		UserAgent result = dao.findOne("userAgent", httpServletRequest.getHeader("User-Agent"));
+		UserAgent result = dao.findOne("userAgent", userAgent);
 
 		if (result != null) {
 
@@ -235,7 +241,9 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		sc.close();
 
 		return "<!DOCTYPE html><html><head><meta charset='utf-8'><script type='text/javascript'>"
-				+ modernizrScript + generateCookieJS(true)
+				+ "var before = new Date().getTime();" 
+				+ modernizrScript + generateCookieJS(false)
+				+ "var after = new Date().getTime();alert(after-before);"
 				+ "</script></head><body><noscript><meta http-equiv='refresh' content='0; url="
 				+ generateNoscriptRedirect(httpServletRequest) + "'></noscript></body></html>";
 	}

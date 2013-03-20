@@ -17,6 +17,7 @@ import javax.xml.namespace.QName;
 
 import org.jdom.DocType;
 import org.jdom.Document;
+import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 import org.xml.sax.InputSource;
@@ -50,18 +51,24 @@ public class DetectorFunctionLibrary {
 	}
 
 	/**
-	 * Gets the user agent family of the requesting user agent as a string. The
-	 * family is decided by the user-defined family definition JSON
+	 * Gets the user agent family of the requesting user agent as an XML
+	 * document. The family is decided by the user-defined family definition
+	 * JSON
 	 * 
-	 * @return the user agent family as a string
+	 * @return the user agent family as a JDOM XML document
 	 */
-	public String getUAFamily() {
+	public Document getUAFamily() {
 		String userAgent = pluginEnvironment.getCurrentRequest().getHeader("User-Agent");
 		UserAgent result = dao.findOne("userAgent", userAgent);
 
 		String jsonFileName = (String) pluginConfig.get("families.uri");
 
-		return findFamily(result, jsonFileName);
+		String uaFamily = findFamily(result, jsonFileName);
+
+		Element rootElement = new Element("uaFamily");
+		rootElement.addContent(uaFamily);
+
+		return new Document(rootElement);
 	}
 
 	/**
