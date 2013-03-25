@@ -241,9 +241,7 @@ public class DetectorHttpInterceptor extends HttpInterceptor {
 		sc.close();
 
 		return "<!DOCTYPE html><html><head><meta charset='utf-8'><script type='text/javascript'>"
-				+ "var before = new Date().getTime();" 
-				+ modernizrScript + generateCookieJS(false)
-				+ "var after = new Date().getTime();alert(after-before);"
+				+ modernizrScript + generateCookieJS(true)
 				+ "</script></head><body><noscript><meta http-equiv='refresh' content='0; url="
 				+ generateNoscriptRedirect(httpServletRequest) + "'></noscript></body></html>";
 	}
