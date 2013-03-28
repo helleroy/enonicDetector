@@ -1,5 +1,5 @@
 {
-	"somefamily" : {
+	"chrome" : {
 		"uaFamily" : "Chrome",
 		"osFamily" : "Mac OS X",
 		"isMobile" : false,
@@ -10,10 +10,13 @@
 			}
 		}
 	},
-	"default" : {
+	"notmobile" : {
 		"isMobile" : false,
 		"features" : {
 			"flexbox" : true
 		}
+	},
+	"mobile" : {
+		"isMobile" : true
 	}
 }
