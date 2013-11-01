@@ -1,7 +1,8 @@
-package no.kaedeno.enonic.detector;
+package no.kaedeno.detector.dao;
 
 import java.net.UnknownHostException;
 
+import no.kaedeno.detector.domain.UserAgent;
 import org.mongojack.JacksonDBCollection;
 import org.mongojack.WriteResult;
 

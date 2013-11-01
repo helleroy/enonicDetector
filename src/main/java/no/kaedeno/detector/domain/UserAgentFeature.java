@@ -1,4 +1,4 @@
-package no.kaedeno.enonic.detector;
+package no.kaedeno.detector.domain;
 
 import java.util.Map;
 
