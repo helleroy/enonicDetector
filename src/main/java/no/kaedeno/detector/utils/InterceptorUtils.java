@@ -3,6 +3,7 @@ package no.kaedeno.detector.utils;
 import no.kaedeno.detector.domain.UserAgentFeature;
 
 import javax.servlet.http.Cookie;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public class InterceptorUtils {
     public static Map<String, UserAgentFeature> parseCookie(String cookie) {
         if (cookie == null || cookie.length() > 0) {
 
-            Map<String, UserAgentFeature> uaFeatures = new LinkedHashMap<String, UserAgentFeature>();
+            Map<String, UserAgentFeature> uaFeatures = new HashMap<>();
 
             for (String feature : cookie.split("\\|")) {
                 String[] nameValue = feature.split("--", 2);
@@ -33,21 +34,21 @@ public class InterceptorUtils {
 
                 if (value.charAt(0) == '/') {
 
-                    Map<String, Boolean> uaSubFeatures = new LinkedHashMap<String, Boolean>();
+                    Map<String, Boolean> uaSubFeatures = new LinkedHashMap<>();
 
                     for (String subFeature : value.substring(1).split("/")) {
                         nameValue = subFeature.split("--", 2);
                         String subName = nameValue[0];
                         String subValue = nameValue[1];
 
-                        uaSubFeatures.put(subName, trueFalse(subValue));
+                        uaSubFeatures.put(subName, trueOrFalse(subValue));
                     }
 
                     uaFeature.setSubFeature(uaSubFeatures);
                     uaFeatures.put(name, uaFeature);
 
                 } else {
-                    uaFeature.setSupported(trueFalse(value));
+                    uaFeature.setSupported(trueOrFalse(value));
                     uaFeatures.put(name, uaFeature);
                 }
             }
@@ -59,28 +60,17 @@ public class InterceptorUtils {
     /**
      * Decides whether a string gotten from a detector cookie represents the
      * boolean values true or false
-     *
-     * @param value
-     *            the value as a string that is to be checked
-     * @return true if the value equals "1", false if not
      */
-    public static boolean trueFalse(String value) {
+    private static boolean trueOrFalse(String value) {
         return value.equals("1") ? true : false;
     }
 
     /**
      * Gets a specific cookie from an array of cookies
-     *
-     * @param cookies
-     *            the array of cookie
-     * @param cookieName
-     *            the name of the specific cookie
-     * @return the cookie object if the name is present in the array, null if
-     *         not
      */
     public static Cookie getCookie(Cookie[] cookies, String cookieName) {
         if (cookies == null || cookieName == null) {
-            return null;
+            throw new NullPointerException("Arguments can not be null");
         }
         for (Cookie c : cookies) {
             if (cookieName.equals(c.getName())) {

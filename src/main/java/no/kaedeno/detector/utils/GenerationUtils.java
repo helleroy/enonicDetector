@@ -15,8 +15,11 @@ public class GenerationUtils {
      * Generates a string with HTML markup and the appropriate JavaScript code
      * to run Modernizr tests on the client.
      *
-     * @param httpServletRequest
-     *            the http request
+     * @param httpServletRequest the http request
+     * @param modernizrUri uri to the modernizr file
+     * @param modernizrCookieId id to identify the modernizr result cookie
+     * @param noscriptParameter parameter to identify if a browser has replied with not supporting JavaScript
+     *
      * @return the generated markup
      */
     public static String generateMarkup(HttpServletRequest httpServletRequest, String modernizrUri, String modernizrCookieId, String noscriptParameter) {
@@ -35,10 +38,6 @@ public class GenerationUtils {
      * Gets a file scanner. Reads from different sources depending on
      * the file being the default file contained in the project or an
      * external, user-defined file.
-     *
-     * @param uri the file uri.
-     *
-     * @return a file Scanner.
      */
     private static Scanner getFileScanner(String uri) {
         try {
@@ -61,13 +60,8 @@ public class GenerationUtils {
      * key-value pairs.
      *
      * Adapted from modernizr-server
-     *
-     * @param reload
-     *            true if the script should reload the page after creating the
-     *            cookie, false if not
-     * @return the generated code
      */
-    public static String generateCookieJS(boolean reload, String modernizrCookieId) {
+    private static String generateCookieJS(boolean reload, String modernizrCookieId) {
         String output = "var m=Modernizr,c='';" + "for(var f in m){" + "if(f[0]=='_'){continue;}"
                 + "var t=typeof m[f];" + "if(t=='function'){continue;}" + "c+=(c?'|':'"
                 + modernizrCookieId + "=')+f+'--';" + "if(t=='object'){"
@@ -85,12 +79,8 @@ public class GenerationUtils {
      * Generates a noscript redirect url, so that browsers without JavaScript
      * support can be redirected back to the correct page. Adds a GET parameter
      * to the URL so that the plugin can detect the lack of JavaScript support
-     *
-     * @param httpServletRequest
-     *            the http request
-     * @return the generated noscript redirect url
      */
-    public static String generateNoscriptRedirect(HttpServletRequest httpServletRequest, String noscriptParameter) {
+    private static String generateNoscriptRedirect(HttpServletRequest httpServletRequest, String noscriptParameter) {
         String url = httpServletRequest.getRequestURL().toString();
         String queryParams = httpServletRequest.getQueryString();
         if (queryParams != null) {

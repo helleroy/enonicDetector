@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import static java.util.logging.Logger.getLogger;
 import static no.kaedeno.detector.utils.GenerationUtils.generateMarkup;
 import static no.kaedeno.detector.utils.InterceptorUtils.getCookie;
 import static no.kaedeno.detector.utils.InterceptorUtils.parseCookie;
@@ -37,7 +38,7 @@ public class InterceptorFilter extends DelegatingFilterProxy {
     @Autowired
     private Environment env;
 
-    private static final Logger log = Logger.getLogger(InterceptorFilter.class.getSimpleName());
+    private static final Logger log = getLogger(InterceptorFilter.class.getSimpleName());
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {

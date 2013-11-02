@@ -1,8 +1,7 @@
 package no.kaedeno.detector.domain;
 
-import java.util.Map;
-
 import javax.persistence.Id;
+import java.util.Map;
 
 public class UserAgent {
 
@@ -25,8 +24,8 @@ public class UserAgent {
 
 	private Map<String, UserAgentFeature> features;
 
-	public UserAgent() {	
-	}
+    private UserAgent() {
+    }
 	
 	public UserAgent(String userAgent, String uaFamily, String uaMajor, String uaMinor,
 			String osFamily, String osMajor, String osMinor, String deviceFamily,
