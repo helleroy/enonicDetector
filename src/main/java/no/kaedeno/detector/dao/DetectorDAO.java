@@ -1,8 +1,5 @@
 package no.kaedeno.detector.dao;
 
-import org.springframework.stereotype.Repository;
-
-@Repository
 public interface DetectorDAO<T> {
 	public T save(T obj);
 	public T findOne(String key, String value);

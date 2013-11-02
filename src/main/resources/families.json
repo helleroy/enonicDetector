@@ -1,22 +1,22 @@
 {
-	"chrome" : {
-		"uaFamily" : "Chrome",
-		"osFamily" : "Mac OS X",
-		"isMobile" : false,
-		"features" : {
-			"video" : {
-				"h264" : true,
-				"webm" : true
-			}
-		}
-	},
-	"notmobile" : {
-		"isMobile" : false,
-		"features" : {
-			"flexbox" : true
-		}
-	},
-	"mobile" : {
-		"isMobile" : true
-	}
+    "chrome" : {
+        "uaFamily" : "Chrome",
+        "osFamily" : "Mac OS X",
+        "isMobile" : false,
+        "features" : {
+            "video" : {
+                "h264" : true,
+                "webm" : true
+            }
+        }
+    },
+    "notmobile" : {
+        "isMobile" : false,
+        "features" : {
+            "flexbox" : true
+        }
+    },
+    "mobile" : {
+        "isMobile" : true
+    }
 }

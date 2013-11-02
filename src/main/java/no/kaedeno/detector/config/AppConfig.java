@@ -6,13 +6,11 @@ import no.kaedeno.detector.dao.DetectorMongoDAO;
 import no.kaedeno.detector.domain.UserAgent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@ComponentScan(basePackages = "no.kaedeno.detector")
 @PropertySource("classpath:/no/kaedeno/detector/properties/interceptor.properties")
 public class AppConfig {
 
@@ -21,7 +19,7 @@ public class AppConfig {
 
     @Bean
     public InterceptorFilter interceptorFilter() {
-        return new InterceptorFilter();
+         return new InterceptorFilter();
     }
 
     @Bean

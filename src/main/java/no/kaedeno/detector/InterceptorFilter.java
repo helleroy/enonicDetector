@@ -3,14 +3,16 @@ package no.kaedeno.detector;
 import no.kaedeno.detector.dao.DetectorDAO;
 import no.kaedeno.detector.domain.UserAgent;
 import no.kaedeno.detector.domain.UserAgentFeature;
-import no.kaedeno.detector.utils.GenerationUtils;
-import no.kaedeno.detector.utils.InterceptorUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.web.filter.DelegatingFilterProxy;
 import ua_parser.Client;
 import ua_parser.Parser;
 
-import javax.servlet.*;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,7 +22,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class InterceptorFilter implements Filter {
+import static no.kaedeno.detector.utils.GenerationUtils.generateMarkup;
+import static no.kaedeno.detector.utils.InterceptorUtils.getCookie;
+import static no.kaedeno.detector.utils.InterceptorUtils.parseCookie;
+
+public class InterceptorFilter extends DelegatingFilterProxy {
 
     private static final String NOSCRIPT_PARAMETER = "nojs";
     private static final String MODERNIZR_COOKIE_ID = "detectorModernizr";
@@ -32,10 +38,6 @@ public class InterceptorFilter implements Filter {
     private Environment env;
 
     private static final Logger log = Logger.getLogger(InterceptorFilter.class.getSimpleName());
-
-    @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-    }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
@@ -53,11 +55,10 @@ public class InterceptorFilter implements Filter {
         UserAgent result = dao.findOne("userAgent", userAgent);
 
         if (result != null) {
-
-            log.info("Result: " + result);
-
+            log.info("Found User-Agent in database: " + result);
             return;
         } else {
+
             // Send Modernizr tests to client if they haven't been sent already
             Map<String, UserAgentFeature> parsedCookie;
 
@@ -65,17 +66,19 @@ public class InterceptorFilter implements Filter {
             String nojsParam = httpServletRequest.getParameter(NOSCRIPT_PARAMETER);
 
             if ("true".equals(nojsParam)) {
+                log.info("User-Agent does not support JavaScript.");
                 parsedCookie = new LinkedHashMap<String, UserAgentFeature>();
                 parsedCookie.put(NOSCRIPT_PARAMETER, new UserAgentFeature(true));
             } else {
                 // Check if the client has responded with a client feature cookie.
                 // Send the Modernizr tests to the client if not
-                Cookie cookie = InterceptorUtils.getCookie(httpServletRequest.getCookies(), MODERNIZR_COOKIE_ID);
+                Cookie cookie = getCookie(httpServletRequest.getCookies(), MODERNIZR_COOKIE_ID);
                 if (cookie == null) {
+                    log.info("Unknown User-Agent - sending client-side tests.");
                     sendClientTests(httpServletRequest, httpServletResponse);
                     return;
                 } else {
-                    parsedCookie = InterceptorUtils.parseCookie(cookie.getValue());
+                    parsedCookie = parseCookie(cookie.getValue());
                 }
             }
 
@@ -103,16 +106,12 @@ public class InterceptorFilter implements Filter {
 
             result = dao.save(userAgentData);
 
-            log.info("Inserted: " + result);
+            log.info("User-Agent features stored in the database: " + result);
         }
     }
 
-    @Override
-    public void destroy() {
-    }
-
     private void sendClientTests(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
-        String markup = GenerationUtils.generateMarkup(httpServletRequest, env.getProperty("modernizr.uri"), MODERNIZR_COOKIE_ID, NOSCRIPT_PARAMETER);
+        String markup = generateMarkup(httpServletRequest, env.getProperty("modernizr.uri"), MODERNIZR_COOKIE_ID, NOSCRIPT_PARAMETER);
         try {
             PrintWriter w = httpServletResponse.getWriter();
             w.write(markup);

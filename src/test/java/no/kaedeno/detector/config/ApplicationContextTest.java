@@ -1,7 +1,6 @@
 package no.kaedeno.detector.config;
 
 
-import no.kaedeno.detector.InterceptorFilter;
 import no.kaedeno.detector.dao.DetectorMongoDAO;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,18 +20,13 @@ public class ApplicationContextTest {
     private static ApplicationContext context;
 
     @BeforeClass
-    public static void getContext() {
+    public static void setUp() {
         context = new AnnotationConfigApplicationContext(AppConfig.class);
     }
 
     @Test
     public void contextMustBeInstantiated() {
         assertNotNull("The ApplicationContext is null.", context);
-    }
-
-    @Test
-    public void interceptorFilterMustBeInstantiated() {
-        assertNotNull("InterceptorFilter is null.", context.getBean(InterceptorFilter.class));
     }
 
     @Test

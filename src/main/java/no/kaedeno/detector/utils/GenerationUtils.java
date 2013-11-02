@@ -1,7 +1,11 @@
 package no.kaedeno.detector.utils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Scanner;
 
@@ -37,20 +41,18 @@ public class GenerationUtils {
      * @return a file Scanner.
      */
     private static Scanner getFileScanner(String uri) {
-        Scanner scanner;
         try {
-            File file = new File(uri);
-            scanner = new Scanner(file);
-        } catch (FileNotFoundException fileNotFoundException) {
+            File file = new File(GenerationUtils.class.getClassLoader().getResource(uri).toURI());
+            return new Scanner(file);
+        } catch (FileNotFoundException|URISyntaxException e) {
             InputStream is = null;
             try {
                 is = new URL("/" + uri).openStream();
             } catch (IOException iOException) {
                 iOException.printStackTrace();
             }
-            scanner = new Scanner(is);
+            return new Scanner(is);
         }
-        return scanner;
     }
 
     /**
